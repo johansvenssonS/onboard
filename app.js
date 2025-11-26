@@ -943,6 +943,268 @@ document.addEventListener('DOMContentLoaded', function() {
             Vad behöver du hjälp med? 😊`;
     }
 
+    // Culture Game Logic
+    let gameStats = {
+        happiness: 50,
+        budget: 50,
+        innovation: 50,
+        balance: 50,
+        day: 1,
+        score: 100
+    };
+
+    let currentScenarioIndex = 0;
+    let gameScenarios = [
+        {
+            title: "Första anställningen",
+            description: "Din första medarbetare vill ha 20% högre lön än budget. Hen är mycket kompetent men det skulle påverka ekonomin.",
+            image: "👔",
+            type: "Rekrytering",
+            choices: [
+                { text: "💰 Ge högre lön - investera i talang", effects: { happiness: 15, budget: -20, innovation: 10, balance: -5 } },
+                { text: "🤝 Erbjud lägre lön + aktier", effects: { happiness: 5, budget: 5, innovation: 5, balance: 10 } },
+                { text: "❌ Leta efter billigare alternativ", effects: { happiness: -10, budget: 15, innovation: -15, balance: 5 } }
+            ]
+        },
+        {
+            title: "Distansarbete eller kontor?",
+            description: "Teamet frågar om policy för distansarbete. Kontor kostar mer men bygger kultur. Remote sparar pengar men kan påverka samarbete.",
+            image: "🏠",
+            type: "Policy",
+            choices: [
+                { text: "🏢 Fullt kontorsarbete - bygg kultur", effects: { happiness: -15, budget: -15, innovation: -5, balance: -10 } },
+                { text: "🌐 100% remote - max flexibilitet", effects: { happiness: 20, budget: 20, innovation: 5, balance: 15 } },
+                { text: "⚖️ Hybrid 3+2 - bästa av båda", effects: { happiness: 10, budget: 5, innovation: 10, balance: 5 } }
+            ]
+        },
+        {
+            title: "Innovationstid eller deadlines?",
+            description: "Teamet vill ha 20% av tiden för egna projekt (som Google). Men ni har tuffa deadlines för kunder.",
+            image: "💡",
+            type: "Innovation",
+            choices: [
+                { text: "🚀 Ge 20% innovationstid", effects: { happiness: 20, budget: -10, innovation: 25, balance: 10 } },
+                { text: "⏰ Fokus på deadlines först", effects: { happiness: -15, budget: 15, innovation: -20, balance: -10 } },
+                { text: "🎯 10% tid + kvartalsvisa hack-days", effects: { happiness: 10, budget: 0, innovation: 15, balance: 5 } }
+            ]
+        },
+        {
+            title: "Medarbetaren är utbränd",
+            description: "En nyckelperson visar tecken på utbrändhet. Hen arbetar 60h/vecka. Vad gör du?",
+            image: "😰",
+            type: "Work-Life Balance",
+            choices: [
+                { text: "🌴 Tvinga 2 veckors semester direkt", effects: { happiness: 15, budget: -5, innovation: -10, balance: 20 } },
+                { text: "👥 Anställ en till för att dela arbetet", effects: { happiness: 10, budget: -20, innovation: 5, balance: 15 } },
+                { text: "💬 Ha samtal men fortsätt som vanligt", effects: { happiness: -20, budget: 5, innovation: -5, balance: -25 } }
+            ]
+        },
+        {
+            title: "Vinst eller lönehöjning?",
+            description: "Företaget går bra! Ni har 200k över. Teamet förväntar sig bonus. Investerare vill se vinst.",
+            image: "💸",
+            type: "Ekonomi",
+            choices: [
+                { text: "🎁 Dela ut som bonus till teamet", effects: { happiness: 25, budget: -15, innovation: 5, balance: 10 } },
+                { text: "📊 Visa vinst för investerare", effects: { happiness: -15, budget: 20, innovation: -10, balance: -5 } },
+                { text: "⚖️ 50/50 split - bonus + vinst", effects: { happiness: 10, budget: 5, innovation: 0, balance: 5 } }
+            ]
+        },
+        {
+            title: "Mångfald eller kompetens först?",
+            description: "Ni ska anställa en senior. Två kandidater: En med perfekt CV men liknande bakgrund som alla andra. En med bra CV och unik perspektiv.",
+            image: "🌈",
+            type: "Kultur",
+            choices: [
+                { text: "🎯 Anställ den med bäst CV", effects: { happiness: 0, budget: 0, innovation: 5, balance: -10 } },
+                { text: "🌟 Anställ för mångfald & perspektiv", effects: { happiness: 15, budget: -5, innovation: 20, balance: 10 } },
+                { text: "🤔 Gör en third round för att hitta bättre", effects: { happiness: -5, budget: -10, innovation: 0, balance: 0 } }
+            ]
+        },
+        {
+            title: "Kris: Kund hotar lämna",
+            description: "Största kunden (40% av intäkterna) kräver feature på 2 veckor. Teamet säger det tar minst 6 veckor med kvalitet.",
+            image: "🔥",
+            type: "Kris",
+            choices: [
+                { text: "⚡ Crunch-mode - leverera på 2 veckor", effects: { happiness: -25, budget: 15, innovation: -15, balance: -30 } },
+                { text: "🤝 Förhandla till 4 veckor + kompromiss", effects: { happiness: 5, budget: 5, innovation: 5, balance: 5 } },
+                { text: "❌ Säg nej - 6 veckor eller inget", effects: { happiness: 10, budget: -25, innovation: 10, balance: 10 } }
+            ]
+        },
+        {
+            title: "Exit eller fortsätt växa?",
+            description: "Ett större företag vill köpa er för 10M. Ni har bra tillväxt och kan bli värda 50M om 3 år - men ingen garanti.",
+            image: "🎰",
+            type: "Strategi",
+            choices: [
+                { text: "💰 Sälj nu - säker exit", effects: { happiness: 10, budget: 30, innovation: -20, balance: 20 } },
+                { text: "🚀 Fortsätt växa - satsa på 50M", effects: { happiness: 15, budget: -10, innovation: 25, balance: -10 } },
+                { text: "🤝 Förhandla till 15M + earn-out", effects: { happiness: 15, budget: 15, innovation: 5, balance: 10 } }
+            ]
+        }
+    ];
+
+    window.startCultureGame = function() {
+        currentScenarioIndex = 0;
+        gameStats = { happiness: 50, budget: 50, innovation: 50, balance: 50, day: 1, score: 100 };
+        addGameLog('🎮 Spelet startat! Lycka till med att bygga din företagskultur.', 'neutral');
+        showNextScenario();
+    };
+
+    function showNextScenario() {
+        if (currentScenarioIndex >= gameScenarios.length) {
+            endGame();
+            return;
+        }
+
+        const scenario = gameScenarios[currentScenarioIndex];
+        gameStats.day++;
+        
+        document.getElementById('scenarioType').textContent = scenario.type;
+        document.getElementById('scenarioImage').textContent = scenario.image;
+        document.getElementById('scenarioTitle').textContent = scenario.title;
+        document.getElementById('scenarioDescription').textContent = scenario.description;
+        document.getElementById('gameDay').textContent = gameStats.day;
+        
+        const choicesHtml = scenario.choices.map((choice, index) => {
+            const className = ['option-a', 'option-b', 'option-c'][index];
+            return `<button class="choice-button ${className}" onclick="makeChoice(${currentScenarioIndex}, ${index})">${choice.text}</button>`;
+        }).join('');
+        
+        document.getElementById('scenarioChoices').innerHTML = choicesHtml;
+        updateGameStats();
+    }
+
+    window.makeChoice = function(scenarioIndex, choiceIndex) {
+        const scenario = gameScenarios[scenarioIndex];
+        const choice = scenario.choices[choiceIndex];
+        
+        // Apply effects
+        gameStats.happiness = Math.max(0, Math.min(100, gameStats.happiness + choice.effects.happiness));
+        gameStats.budget = Math.max(0, Math.min(100, gameStats.budget + choice.effects.budget));
+        gameStats.innovation = Math.max(0, Math.min(100, gameStats.innovation + choice.effects.innovation));
+        gameStats.balance = Math.max(0, Math.min(100, gameStats.balance + choice.effects.balance));
+        
+        // Calculate score
+        gameStats.score = Math.round((gameStats.happiness + gameStats.budget + gameStats.innovation + gameStats.balance) / 4);
+        
+        // Log choice
+        const effects = [];
+        if (choice.effects.happiness > 0) effects.push(`😊 +${choice.effects.happiness}`);
+        if (choice.effects.happiness < 0) effects.push(`😊 ${choice.effects.happiness}`);
+        if (choice.effects.budget > 0) effects.push(`💰 +${choice.effects.budget}`);
+        if (choice.effects.budget < 0) effects.push(`💰 ${choice.effects.budget}`);
+        if (choice.effects.innovation > 0) effects.push(`🚀 +${choice.effects.innovation}`);
+        if (choice.effects.innovation < 0) effects.push(`🚀 ${choice.effects.innovation}`);
+        if (choice.effects.balance > 0) effects.push(`⚖️ +${choice.effects.balance}`);
+        if (choice.effects.balance < 0) effects.push(`⚖️ ${choice.effects.balance}`);
+        
+        const logType = gameStats.score >= 50 ? 'positive' : 'negative';
+        addGameLog(`Val: ${choice.text.split('-')[1].trim()} | ${effects.join(' ')}`, logType);
+        
+        // Check game over conditions
+        if (gameStats.happiness <= 0 || gameStats.budget <= 0 || gameStats.balance <= 0) {
+            gameOver();
+            return;
+        }
+        
+        currentScenarioIndex++;
+        setTimeout(showNextScenario, 500);
+    };
+
+    function updateGameStats() {
+        // Update stat values and bars
+        document.getElementById('happinessValue').textContent = gameStats.happiness;
+        document.getElementById('budgetValue').textContent = gameStats.budget;
+        document.getElementById('innovationValue').textContent = gameStats.innovation;
+        document.getElementById('balanceValue').textContent = gameStats.balance;
+        document.getElementById('companyScore').textContent = gameStats.score;
+        
+        updateStatBar('happinessFill', gameStats.happiness);
+        updateStatBar('budgetFill', gameStats.budget);
+        updateStatBar('innovationFill', gameStats.innovation);
+        updateStatBar('balanceFill', gameStats.balance);
+    }
+
+    function updateStatBar(id, value) {
+        const fill = document.getElementById(id);
+        fill.style.width = value + '%';
+        
+        fill.classList.remove('high', 'low');
+        if (value >= 70) fill.classList.add('high');
+        if (value <= 30) fill.classList.add('low');
+    }
+
+    function addGameLog(message, type = 'neutral') {
+        const logContent = document.getElementById('gameLogContent');
+        const entry = document.createElement('div');
+        entry.className = `log-entry ${type}`;
+        entry.textContent = message;
+        logContent.insertBefore(entry, logContent.firstChild);
+        
+        // Keep only last 20 entries
+        while (logContent.children.length > 20) {
+            logContent.removeChild(logContent.lastChild);
+        }
+    }
+
+    function endGame() {
+        let rating, message;
+        if (gameStats.score >= 80) {
+            rating = "🏆 Exceptionell VD!";
+            message = "Du har byggt ett fantastiskt företag med hög trivsel, stark ekonomi och innovation. Dina medarbetare älskar att jobba här!";
+        } else if (gameStats.score >= 60) {
+            rating = "⭐ Bra jobbat!";
+            message = "Du har balanserat företaget väl. Det finns förbättringsområden men överlag en solid företagskultur.";
+        } else if (gameStats.score >= 40) {
+            rating = "📊 Okej resultat";
+            message = "Företaget fungerar, men det finns stora utmaningar. Flera områden behöver omedelbar uppmärksamhet.";
+        } else {
+            rating = "⚠️ Kritiskt läge";
+            message = "Företaget kämpar. Du behöver omvärdera din strategi och fokusera på de viktigaste problemen.";
+        }
+        
+        document.getElementById('scenarioType').textContent = "Spel slut";
+        document.getElementById('scenarioImage').textContent = "🎬";
+        document.getElementById('scenarioTitle').textContent = rating;
+        document.getElementById('scenarioDescription').innerHTML = `
+            ${message}<br><br>
+            <strong>Slutresultat:</strong><br>
+            😊 Trivsel: ${gameStats.happiness}/100<br>
+            💰 Budget: ${gameStats.budget}/100<br>
+            🚀 Innovation: ${gameStats.innovation}/100<br>
+            ⚖️ Balans: ${gameStats.balance}/100<br>
+            📊 Totalt värde: ${gameStats.score}/100
+        `;
+        document.getElementById('scenarioChoices').innerHTML = `
+            <button class="choice-button" onclick="startCultureGame()">🔄 Spela igen</button>
+        `;
+        
+        addGameLog(`🎬 Spel slut! Företagsvärde: ${gameStats.score}/100`, gameStats.score >= 60 ? 'positive' : 'negative');
+    }
+
+    function gameOver() {
+        let reason;
+        if (gameStats.happiness <= 0) reason = "Alla medarbetare har sagt upp sig 😢";
+        if (gameStats.budget <= 0) reason = "Företaget är bankrutt 💸";
+        if (gameStats.balance <= 0) reason = "Massiv utbrändhet - ingen vill jobba här ⚖️";
+        
+        document.getElementById('scenarioType').textContent = "Game Over";
+        document.getElementById('scenarioImage').textContent = "💀";
+        document.getElementById('scenarioTitle').textContent = "Företaget gick under";
+        document.getElementById('scenarioDescription').innerHTML = `
+            <strong>${reason}</strong><br><br>
+            Du överlevde ${gameStats.day} dagar.<br><br>
+            Företagsledning handlar om balans. Ett enda område på 0 kan förstöra allt.
+        `;
+        document.getElementById('scenarioChoices').innerHTML = `
+            <button class="choice-button" onclick="startCultureGame()">🔄 Försök igen</button>
+        `;
+        
+        addGameLog(`💀 Game Over: ${reason}`, 'negative');
+    }
+
     // Initialize
     loadData();
     updateStats();

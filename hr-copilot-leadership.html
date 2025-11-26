@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HR Leadership AI - Företagsledning & Dokumenthantering</title>
+    <title>OnboardGame - Företagsledning & Onboardning</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="container">
         <header>
             <div>
-                <h1>📋 HR Leadership AI</h1>
+                <h1>📋 OnboardGame</h1>
                 <p style="opacity: 0.9; margin-top: 5px;">Företagsledning & Dokumenthantering</p>
             </div>
             <div class="header-stats">
@@ -48,6 +48,9 @@
                 </div>
                 <div class="nav-item" data-view="knowledge">
                     💡 Kunskapsbas
+                </div>
+                <div class="nav-item" data-view="culture-game">
+                    🎮 Culture Game
                 </div>
             </div>
 
@@ -221,6 +224,77 @@
                 <div class="view" id="knowledge-view">
                     <h2>💡 Företagets Kunskapsbas</h2>
                     <div class="document-grid" id="knowledgeGrid"></div>
+                </div>
+
+                <!-- Culture Game View -->
+                <div class="view" id="culture-game-view">
+                    <h2>🎮 Culture Builder - Bygg din företagskultur</h2>
+                    
+                    <div class="game-container">
+                        <div class="game-stats-bar">
+                            <div class="game-stat">
+                                <span class="stat-icon">😊</span>
+                                <span class="stat-label">Trivsel</span>
+                                <div class="stat-bar">
+                                    <div class="stat-fill" id="happinessFill" style="width: 50%"></div>
+                                </div>
+                                <span id="happinessValue">50</span>
+                            </div>
+                            <div class="game-stat">
+                                <span class="stat-icon">💰</span>
+                                <span class="stat-label">Budget</span>
+                                <div class="stat-bar">
+                                    <div class="stat-fill" id="budgetFill" style="width: 50%"></div>
+                                </div>
+                                <span id="budgetValue">50</span>
+                            </div>
+                            <div class="game-stat">
+                                <span class="stat-icon">🚀</span>
+                                <span class="stat-label">Innovation</span>
+                                <div class="stat-bar">
+                                    <div class="stat-fill" id="innovationFill" style="width: 50%"></div>
+                                </div>
+                                <span id="innovationValue">50</span>
+                            </div>
+                            <div class="game-stat">
+                                <span class="stat-icon">⚖️</span>
+                                <span class="stat-label">Balans</span>
+                                <div class="stat-bar">
+                                    <div class="stat-fill" id="balanceFill" style="width: 50%"></div>
+                                </div>
+                                <span id="balanceValue">50</span>
+                            </div>
+                        </div>
+
+                        <div class="game-score">
+                            <div>Dag: <strong id="gameDay">1</strong></div>
+                            <div>Företagsvärde: <strong id="companyScore">100</strong></div>
+                        </div>
+
+                        <div class="game-scenario-card" id="scenarioCard">
+                            <div class="scenario-header">
+                                <span class="scenario-day">Dag 1</span>
+                                <span class="scenario-type" id="scenarioType">Grundande</span>
+                            </div>
+                            <div class="scenario-image" id="scenarioImage">🏢</div>
+                            <h3 id="scenarioTitle">Välkommen till ditt nya företag!</h3>
+                            <p id="scenarioDescription">
+                                Du har just startat ditt företag med 10 medarbetare. Nu ska du bygga en företagskultur som balanserar trivsel, ekonomi, innovation och work-life balance. Varje beslut påverkar dina stats. Lycka till!
+                            </p>
+                            <div class="scenario-choices" id="scenarioChoices">
+                                <button class="choice-button" onclick="startCultureGame()">
+                                    🚀 Starta spelet
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="game-log" id="gameLog">
+                            <h4>📜 Händelselogg</h4>
+                            <div id="gameLogContent">
+                                <div class="log-entry">Spelet är redo att börja...</div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
