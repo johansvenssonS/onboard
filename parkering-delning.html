@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ParkShare - Dela din parkering</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 2.8em;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .subtitle {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .tabs {
+            display: flex;
+            background: #f8f9fa;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            font-size: 1.1em;
+            font-weight: 600;
+            color: #666;
+            transition: all 0.3s;
+            border: none;
+            background: transparent;
+        }
+
+        .tab.active {
+            background: white;
+            color: #667eea;
+            border-bottom: 3px solid #667eea;
+        }
+
+        .tab:hover {
+            background: #e9ecef;
+        }
+
+        .content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0;
+            height: calc(100vh - 230px);
+            min-height: 700px;
+        }
+
+        #map {
+            height: 100%;
+            width: 100%;
+        }
+
+        .panel {
+            overflow-y: auto;
+            padding: 30px;
+            background: #f8f9fa;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #333;
+        }
+
+        input, textarea, select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .time-inputs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .btn {
+            padding: 15px 30px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            width: 100%;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(40, 167, 69, 0.4);
+        }
+
+        .parking-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .parking-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+        }
+
+        .parking-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 15px;
+        }
+
+        .parking-address {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .parking-price {
+            background: #28a745;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 1.3em;
+            font-weight: bold;
+        }
+
+        .parking-details {
+            color: #666;
+            line-height: 1.8;
+        }
+
+        .parking-detail-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .parking-description {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 2px solid #e9ecef;
+            color: #555;
+            font-size: 0.95em;
+        }
+
+        .parking-actions {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-small {
+            padding: 8px 16px;
+            font-size: 14px;
+            width: auto;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+
+        .empty-state h3 {
+            font-size: 1.5em;
+            margin-bottom: 10px;
+        }
+
+        .info-box {
+            background: #e7f3ff;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+        }
+
+        .info-box p {
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .location-btn {
+            margin-top: 10px;
+            background: #28a745;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .location-btn:hover {
+            background: #218838;
+        }
+
+        .filters {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .filter-group {
+            margin-bottom: 15px;
+        }
+
+        .filter-group:last-child {
+            margin-bottom: 0;
+        }
+
+        .filter-label {
+            font-size: 0.9em;
+            font-weight: 600;
+            color: #666;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        @media (max-width: 1200px) {
+            .content {
+                grid-template-columns: 1fr;
+                height: auto;
+            }
+
+            #map {
+                height: 400px;
+            }
+
+            h1 {
+                font-size: 2em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🚗 ParkShare</h1>
+            <p class="subtitle">Dela din parkering - Tjäna pengar på ledig parkeringsplats</p>
+        </header>
+
+        <div class="tabs">
+            <button class="tab active" data-tab="browse">📍 Hitta parkering</button>
+            <button class="tab" data-tab="add">➕ Lägg ut min parkering</button>
+            <button class="tab" data-tab="myspots">🏠 Mina platser</button>
+        </div>
+
+        <div class="content">
+            <div id="map"></div>
+            
+            <div class="panel">
+                <!-- Browse Tab -->
+                <div class="tab-content active" id="browse-content">
+                    <div class="filters">
+                        <div class="filter-group">
+                            <label class="filter-label">Max pris (kr/timme)</label>
+                            <input type="range" id="priceFilter" min="0" max="100" value="100" step="5">
+                            <div style="text-align: center; color: #667eea; font-weight: bold; margin-top: 5px;">
+                                <span id="priceValue">100</span> kr/h
+                            </div>
+                        </div>
+                        <button class="btn btn-primary" id="findNearbyBtn">
+                            📍 Hitta platser nära mig
+                        </button>
+                    </div>
+                    <div id="parkingsList"></div>
+                </div>
+
+                <!-- Add Tab -->
+                <div class="tab-content" id="add-content">
+                    <div class="info-box">
+                        <p><strong>💡 Så fungerar det:</strong></p>
+                        <p>Fyll i informationen om din parkeringsplats nedan. Klicka sedan på kartan för att markera exakt plats, eller använd adressen för automatisk placering.</p>
+                    </div>
+                    
+                    <form id="addParkingForm">
+                        <div class="form-group">
+                            <label>📍 Adress *</label>
+                            <input type="text" id="address" placeholder="T.ex. Storgatan 1, Stockholm" required>
+                            <button type="button" class="location-btn" id="useCurrentLocation">
+                                📍 Använd min nuvarande plats
+                            </button>
+                        </div>
+
+                        <div class="form-group">
+                            <label>💰 Pris per timme (kr) *</label>
+                            <input type="number" id="price" placeholder="T.ex. 25" min="0" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label>📝 Beskrivning *</label>
+                            <textarea id="description" placeholder="Beskriv din parkeringsplats (t.ex. 'Uppfart framför garage', 'Parkeringsplats i carport')" required></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label>🚗 Typ av parkering</label>
+                            <select id="parkingType">
+                                <option value="garage">Garage</option>
+                                <option value="carport">Carport</option>
+                                <option value="uppfart">Uppfart</option>
+                                <option value="gata">Gatuparkering</option>
+                                <option value="privat">Privat parkering</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>⏰ Tillgänglig från-till</label>
+                            <div class="time-inputs">
+                                <div>
+                                    <label style="font-size: 0.9em; color: #666;">Från tid</label>
+                                    <input type="time" id="availableFrom" value="08:00">
+                                </div>
+                                <div>
+                                    <label style="font-size: 0.9em; color: #666;">Till tid</label>
+                                    <input type="time" id="availableTo" value="18:00">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>📱 Kontaktinformation</label>
+                            <input type="text" id="contact" placeholder="Telefonnummer eller email">
+                        </div>
+
+                        <button type="submit" class="btn btn-success">
+                            ✅ Publicera min parkering
+                        </button>
+                    </form>
+                </div>
+
+                <!-- My Spots Tab -->
+                <div class="tab-content" id="myspots-content">
+                    <div class="info-box">
+                        <p><strong>🏠 Dina publicerade parkeringsplatser</strong></p>
+                        <p>Här kan du hantera och ta bort dina parkeringsplatser.</p>
+                    </div>
+                    <div id="mySpotsList"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        let map;
+        let parkingSpots = [];
+        let markers = [];
+        let selectedLocation = null;
+        let userLocation = null;
+
+        // Initialize map
+        function initMap() {
+            map = L.map('map').setView([59.3293, 18.0686], 13);
+            
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+
+            // Click to add parking spot
+            map.on('click', function(e) {
+                const activeTab = document.querySelector('.tab.active').dataset.tab;
+                if (activeTab === 'add') {
+                    selectedLocation = e.latlng;
+                    updateMapWithSelection();
+                    alert(`📍 Plats vald! Lat: ${e.latlng.lat.toFixed(5)}, Lng: ${e.latlng.lng.toFixed(5)}`);
+                }
+            });
+
+            loadParkingSpots();
+            displayParkingSpots();
+        }
+
+        // Load parking spots from localStorage
+        function loadParkingSpots() {
+            const stored = localStorage.getItem('parkingSpots');
+            if (stored) {
+                parkingSpots = JSON.parse(stored);
+            }
+        }
+
+        // Save parking spots to localStorage
+        function saveParkingSpots() {
+            localStorage.setItem('parkingSpots', JSON.stringify(parkingSpots));
+        }
+
+        // Display parking spots on map
+        function displayParkingSpots(filteredSpots = null) {
+            // Clear existing markers
+            markers.forEach(marker => map.removeLayer(marker));
+            markers = [];
+
+            const spotsToDisplay = filteredSpots || parkingSpots;
+
+            spotsToDisplay.forEach((spot, index) => {
+                const marker = L.marker([spot.lat, spot.lng], {
+                    icon: L.divIcon({
+                        className: 'parking-marker',
+                        html: `<div style="background: #28a745; color: white; padding: 8px 12px; border-radius: 20px; font-weight: bold; font-size: 13px; box-shadow: 0 2px 8px rgba(0,0,0,0.3); white-space: nowrap;">${spot.price}kr/h</div>`,
+                        iconSize: [80, 40]
+                    })
+                }).addTo(map);
+
+                marker.bindPopup(`
+                    <strong>${spot.address}</strong><br>
+                    ${spot.price} kr/timme<br>
+                    <small>${spot.description}</small><br>
+                    <small>Tillgänglig: ${spot.availableFrom} - ${spot.availableTo}</small>
+                `);
+
+                marker.on('click', () => {
+                    document.getElementById(`parking-${spot.id}`).scrollIntoView({ behavior: 'smooth' });
+                });
+
+                markers.push(marker);
+            });
+
+            updateParkingList(spotsToDisplay);
+        }
+
+        // Update parking list in browse tab
+        function updateParkingList(spots) {
+            const list = document.getElementById('parkingsList');
+            
+            if (spots.length === 0) {
+                list.innerHTML = `
+                    <div class="empty-state">
+                        <h3>Inga parkeringsplatser hittades</h3>
+                        <p>Prova att justera filtren eller lägg till en egen parkering!</p>
+                    </div>
+                `;
+                return;
+            }
+
+            list.innerHTML = spots.map(spot => `
+                <div class="parking-card" id="parking-${spot.id}">
+                    <div class="parking-header">
+                        <div>
+                            <div class="parking-address">${spot.address}</div>
+                            <div style="color: #666; font-size: 0.9em;">${spot.parkingType}</div>
+                        </div>
+                        <div class="parking-price">${spot.price} kr/h</div>
+                    </div>
+                    <div class="parking-details">
+                        <div class="parking-detail-row">
+                            <span>⏰</span>
+                            <span>Tillgänglig: ${spot.availableFrom} - ${spot.availableTo}</span>
+                        </div>
+                        ${spot.distance ? `
+                        <div class="parking-detail-row">
+                            <span>📍</span>
+                            <span>${spot.distance.toFixed(1)} km från dig</span>
+                        </div>
+                        ` : ''}
+                        ${spot.contact ? `
+                        <div class="parking-detail-row">
+                            <span>📱</span>
+                            <span>${spot.contact}</span>
+                        </div>
+                        ` : ''}
+                    </div>
+                    <div class="parking-description">
+                        ${spot.description}
+                    </div>
+                    <div class="parking-actions">
+                        <button class="btn btn-primary btn-small" onclick="bookParking('${spot.id}')">
+                            📅 Boka plats
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Update my spots list
+        function updateMySpotsList() {
+            const list = document.getElementById('mySpotsList');
+            
+            if (parkingSpots.length === 0) {
+                list.innerHTML = `
+                    <div class="empty-state">
+                        <h3>Du har inga publicerade platser</h3>
+                        <p>Gå till "Lägg ut min parkering" för att lägga till din första plats!</p>
+                    </div>
+                `;
+                return;
+            }
+
+            list.innerHTML = parkingSpots.map(spot => `
+                <div class="parking-card">
+                    <div class="parking-header">
+                        <div>
+                            <div class="parking-address">${spot.address}</div>
+                            <div style="color: #666; font-size: 0.9em;">${spot.parkingType}</div>
+                        </div>
+                        <div class="parking-price">${spot.price} kr/h</div>
+                    </div>
+                    <div class="parking-details">
+                        <div class="parking-detail-row">
+                            <span>⏰</span>
+                            <span>${spot.availableFrom} - ${spot.availableTo}</span>
+                        </div>
+                    </div>
+                    <div class="parking-description">
+                        ${spot.description}
+                    </div>
+                    <div class="parking-actions">
+                        <button class="btn btn-danger btn-small" onclick="deleteParking('${spot.id}')">
+                            🗑️ Ta bort
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Add parking spot
+        document.getElementById('addParkingForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const address = document.getElementById('address').value;
+            const price = document.getElementById('price').value;
+            const description = document.getElementById('description').value;
+            const parkingType = document.getElementById('parkingType').value;
+            const availableFrom = document.getElementById('availableFrom').value;
+            const availableTo = document.getElementById('availableTo').value;
+            const contact = document.getElementById('contact').value;
+
+            let lat, lng;
+
+            if (selectedLocation) {
+                lat = selectedLocation.lat;
+                lng = selectedLocation.lng;
+            } else {
+                // Geocode address (simplified - in production use real geocoding API)
+                const coords = await geocodeAddress(address);
+                if (!coords) {
+                    alert('Kunde inte hitta adressen. Klicka på kartan för att välja plats manuellt.');
+                    return;
+                }
+                lat = coords.lat;
+                lng = coords.lng;
+            }
+
+            const newSpot = {
+                id: Date.now().toString(),
+                address,
+                price: parseInt(price),
+                description,
+                parkingType,
+                availableFrom,
+                availableTo,
+                contact,
+                lat,
+                lng,
+                createdAt: new Date().toISOString()
+            };
+
+            parkingSpots.push(newSpot);
+            saveParkingSpots();
+            displayParkingSpots();
+            
+            // Reset form
+            document.getElementById('addParkingForm').reset();
+            selectedLocation = null;
+            
+            // Switch to browse tab
+            switchTab('myspots');
+            
+            alert('✅ Din parkering har publicerats!');
+        });
+
+        // Simple geocoding (mock - in production use Nominatim or Google Maps API)
+        async function geocodeAddress(address) {
+            // This is a simplified version - in a real app, use a geocoding API
+            // For now, return a random location in Stockholm area
+            const baselat = 59.3293 + (Math.random() - 0.5) * 0.05;
+            const baseLng = 18.0686 + (Math.random() - 0.5) * 0.05;
+            return { lat: baseUrl, lng: baseLng };
+        }
+
+        // Delete parking spot
+        window.deleteParking = function(id) {
+            if (confirm('Är du säker på att du vill ta bort denna parkering?')) {
+                parkingSpots = parkingSpots.filter(spot => spot.id !== id);
+                saveParkingSpots();
+                displayParkingSpots();
+                updateMySpotsList();
+            }
+        };
+
+        // Book parking (mock)
+        window.bookParking = function(id) {
+            const spot = parkingSpots.find(s => s.id === id);
+            alert(`📅 Bokningsfunktion kommer snart!\n\nDu valde: ${spot.address}\nPris: ${spot.price} kr/h\n\nKontakt: ${spot.contact || 'Ingen kontaktinfo angiven'}`);
+        };
+
+        // Tab switching
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                switchTab(tab.dataset.tab);
+            });
+        });
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            
+            document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+            document.getElementById(`${tabName}-content`).classList.add('active');
+
+            if (tabName === 'myspots') {
+                updateMySpotsList();
+            }
+        }
+
+        // Use current location
+        document.getElementById('useCurrentLocation').addEventListener('click', () => {
+            if ('geolocation' in navigator) {
+                navigator.geolocation.getCurrentPosition((position) => {
+                    selectedLocation = {
+                        lat: position.coords.latitude,
+                        lng: position.coords.longitude
+                    };
+                    map.setView([selectedLocation.lat, selectedLocation.lng], 15);
+                    updateMapWithSelection();
+                    alert('📍 Din nuvarande plats har valts!');
+                });
+            }
+        });
+
+        // Update map with selection marker
+        function updateMapWithSelection() {
+            // Remove previous selection marker
+            markers.filter(m => m.options.icon.options.className === 'selection-marker')
+                   .forEach(m => map.removeLayer(m));
+
+            if (selectedLocation) {
+                const marker = L.marker([selectedLocation.lat, selectedLocation.lng], {
+                    icon: L.divIcon({
+                        className: 'selection-marker',
+                        html: '<div style="background: #667eea; width: 30px; height: 30px; border-radius: 50%; border: 4px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3);"></div>',
+                        iconSize: [30, 30]
+                    })
+                }).addTo(map);
+                markers.push(marker);
+            }
+        }
+
+        // Find nearby
+        document.getElementById('findNearbyBtn').addEventListener('click', () => {
+            if ('geolocation' in navigator) {
+                navigator.geolocation.getCurrentPosition((position) => {
+                    userLocation = {
+                        lat: position.coords.latitude,
+                        lng: position.coords.longitude
+                    };
+
+                    map.setView([userLocation.lat, userLocation.lng], 13);
+
+                    // Calculate distances
+                    const spotsWithDistance = parkingSpots.map(spot => ({
+                        ...spot,
+                        distance: calculateDistance(userLocation.lat, userLocation.lng, spot.lat, spot.lng)
+                    })).sort((a, b) => a.distance - b.distance);
+
+                    displayParkingSpots(spotsWithDistance);
+                });
+            } else {
+                alert('Din webbläsare stöder inte geolokalisering');
+            }
+        });
+
+        // Calculate distance
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371;
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                      Math.sin(dLon/2) * Math.sin(dLon/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return R * c;
+        }
+
+        // Price filter
+        document.getElementById('priceFilter').addEventListener('input', (e) => {
+            const maxPrice = parseInt(e.target.value);
+            document.getElementById('priceValue').textContent = maxPrice;
+            
+            const filtered = parkingSpots.filter(spot => spot.price <= maxPrice);
+            displayParkingSpots(filtered);
+        });
+
+        // Initialize
+        initMap();
+    </script>
+</body>
+</html>

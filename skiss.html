@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="sv">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PolyComm Dashboard Partivyer</title>
+    <!-- Ladda Tailwind CSS via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      /* Konfigurera Tailwind för att använda Inter som standardfont */
+      @import url("https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap");
+      body {
+        font-family: "Inter", sans-serif;
+        background-color: #f7f9fb;
+      }
+      /* Grundläggande stil för kort */
+      .card {
+        background-color: #ffffff;
+        border-radius: 1rem;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+          0 2px 4px -2px rgba(0, 0, 0, 0.06);
+        padding: 1.5rem;
+        transition: transform 0.2s;
+        height: 100%; /* Säkrar att alla kort är lika höga i gridet */
+        display: flex;
+        flex-direction: column;
+      }
+      .card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1),
+          0 4px 6px -4px rgba(0, 0, 0, 0.05);
+      }
+      /* Anpassad scrollbar för att dölja i feed */
+      .custom-scroll {
+        scrollbar-width: none; /* Firefox */
+      }
+      .custom-scroll::-webkit-scrollbar {
+        display: none; /* Chrome, Safari, Opera */
+      }
+    </style>
+  </head>
+  <body class="min-h-screen">
+    <!-- Navigationsfält -->
+    <header class="bg-blue-800 shadow-lg">
+      <div
+        class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center"
+      >
+        <h1 class="text-3xl font-extrabold text-white tracking-wider">
+          PolyComm - Partivyer
+        </h1>
+        <nav class="hidden md:flex space-x-6">
+          <a
+            href="#"
+            class="text-white hover:text-blue-200 font-medium transition duration-150 border-b-2 border-white"
+            >Partiöversikt</a
+          >
+          <a
+            href="#"
+            class="text-white hover:text-blue-200 font-medium transition duration-150"
+            >Ämnestrender</a
+          >
+        </nav>
+      </div>
+    </header>
+
+    <!-- Huvudinnehåll / Dashboard -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <h2 class="text-3xl font-bold text-gray-800 mb-2">
+        Partiöversikt: Realtidskommunikation
+      </h2>
+      <p class="text-lg text-gray-500 mb-8">
+        Senaste analys av uttalanden från riksdagspartierna. Baserat på data
+        från de senaste 24 timmarna.
+      </p>
+
+      <!-- Rutnät för Partier (4x2 layout) -->
+      <div
+        id="parties-grid"
+        class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
+      >
+        <!-- Partikorten genereras här av JavaScript -->
+      </div>
+
+      <div class="mt-12 p-6 bg-gray-100 rounded-xl">
+        <h3 class="text-xl font-semibold text-gray-700 mb-3">
+          Statistiköversikt
+        </h3>
+        <p class="text-sm text-gray-600">
+          Totala antalet inlägg analyserade:
+          <span id="total-posts" class="font-bold text-blue-600"></span>. Senast
+          uppdaterad:
+          <span id="last-update" class="font-bold text-blue-600"></span>
+        </p>
+      </div>
+
+      <!-- NY SEKTION: Ämnesjämförelse -->
+      <section id="topic-comparison-section" class="mt-12">
+        <h2 class="text-3xl font-bold text-gray-800 mb-6 border-b pb-2">
+          Ämnesjämförelse: Vad Säger Partierna om...
+        </h2>
+        <div id="comparison-content" class="space-y-8">
+          <!-- Jämförelser genereras här av JavaScript -->
+        </div>
+      </section>
+    </main>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        document.getElementById("last-update").textContent =
+          new Date().toLocaleTimeString("sv-SE", {
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+          });
+
+        // --- Riksdagspartier och Mock Data (Uppdaterad med källa) ---
+        const partyData = [
+          {
+            name: "Socialdemokraterna",
+            abbr: "S",
+            color: "rgb(204, 0, 0)",
+            latestPosts: [
+              {
+                topic: "Välfärd",
+                text: "Vi måste öka bemanningen inom äldreomsorgen för att möta framtidens behov.",
+                sentiment: "Positiv",
+                time: "2h sedan",
+                source: "X: @Socialdemokr",
+              },
+              {
+                topic: "Arbetsmarknad",
+                text: "Stärkta LAS-regler ger trygghet, men vi behöver fler vägar in på arbetsmarknaden.",
+                sentiment: "Neutral",
+                time: "6h sedan",
+                source: "X: @PartiS_Sthlm",
+              },
+            ],
+          },
+          {
+            name: "Moderaterna",
+            abbr: "M",
+            color: "rgb(0, 106, 179)",
+            latestPosts: [
+              {
+                topic: "Ekonomi",
+                text: "Skatterna måste sänkas för att öka drivkrafterna och få igång tillväxten i ekonomin.",
+                sentiment: "Positiv",
+                time: "1h sedan",
+                source: "X: @moderaterna",
+              },
+              {
+                topic: "Brottslighet",
+                text: "Hårdare straff och ökad polisnärvaro är det enda sättet att stoppa gängkriminaliteten.",
+                sentiment: "Negativ",
+                time: "3h sedan",
+                source: "X: @UlfKristersson",
+              },
+            ],
+          },
+          {
+            name: "Sverigedemokraterna",
+            abbr: "SD",
+            color: "rgb(10, 56, 126)",
+            latestPosts: [
+              {
+                topic: "Migration",
+                text: "En stramare migrationspolitik är nödvändig för att skydda det svenska samhället och dess resurser.",
+                sentiment: "Mycket Negativ",
+                time: "4h sedan",
+                source: "X: @sdriks",
+              },
+              {
+                topic: "Kultur",
+                text: "Svensk kultur måste prioriteras och försvaras mot globala influenser.",
+                sentiment: "Positiv",
+                time: "8h sedan",
+                source: "X: @JimmieAkesson",
+              },
+            ],
+          },
+          {
+            name: "Centerpartiet",
+            abbr: "C",
+            color: "rgb(0, 158, 73)",
+            latestPosts: [
+              {
+                topic: "Landsbygd",
+                text: "Hela Sverige ska leva! Vi föreslår sänkta drivmedelspriser för landsbygden.",
+                sentiment: "Positiv",
+                time: "30m sedan",
+                source: "X: @centerpartiet",
+              },
+              {
+                topic: "Klimat",
+                text: "Klimatfrågan löses bäst genom gröna innovationer och fri företagsamhet.",
+                sentiment: "Positiv",
+                time: "5h sedan",
+                source: "X: @MuharremDemirok",
+              },
+            ],
+          },
+          {
+            name: "Vänsterpartiet",
+            abbr: "V",
+            color: "rgb(187, 0, 0)",
+            latestPosts: [
+              {
+                topic: "Jämställdhet",
+                text: "Jämställda löner och rättvisa arbetsvillkor är grunden för ett solidariskt samhälle.",
+                sentiment: "Positiv",
+                time: "1h sedan",
+                source: "X: @vansterpartiet",
+              },
+              {
+                topic: "Ekonomi",
+                text: "Det är dags att införa en skatt på stora förmögenheter för att finansiera välfärden.",
+                sentiment: "Negativ",
+                time: "7h sedan",
+                source: "X: @NooshiDadgostar",
+              },
+            ],
+          },
+          {
+            name: "Kristdemokraterna",
+            abbr: "KD",
+            color: "rgb(148, 17, 100)",
+            latestPosts: [
+              {
+                topic: "Familj",
+                text: "Familjens betydelse måste stärkas i politiken. Mer fokus på tid för barnen.",
+                sentiment: "Positiv",
+                time: "2h sedan",
+                source: "X: @kdriks",
+              },
+              {
+                topic: "Sjukvård",
+                text: "Vi måste stoppa byråkratin och satsa mer på vårdpersonalens kompetens.",
+                sentiment: "Neutral",
+                time: "9h sedan",
+                source: "X: @EbbaBusch",
+              },
+            ],
+          },
+          {
+            name: "Miljöpartiet",
+            abbr: "MP",
+            color: "rgb(102, 170, 0)",
+            latestPosts: [
+              {
+                topic: "Klimat",
+                text: "Sverige måste bli världsledande i klimatomställningen. Stoppa all fossil subventionering nu!",
+                sentiment: "Mycket Positiv",
+                time: "15m sedan",
+                source: "X: @Miljopartiet",
+              },
+              {
+                topic: "Energi",
+                text: "Förnybar energi är framtiden. Satsa på sol, vind och lagringsteknik.",
+                sentiment: "Positiv",
+                time: "4h sedan",
+                source: "X: @MP_riks",
+              },
+            ],
+          },
+          {
+            name: "Liberalerna",
+            abbr: "L",
+            color: "rgb(0, 117, 168)",
+            latestPosts: [
+              {
+                topic: "Skola",
+                text: "Sveriges skolor behöver mer ordning och reda. Stärk lärarnas auktoritet.",
+                sentiment: "Negativ",
+                time: "1h sedan",
+                source: "X: @liberalerna",
+              },
+              {
+                topic: "Ekonomi",
+                text: "Vi värnar det europeiska samarbetet och en stark frihandel är avgörande.",
+                sentiment: "Positiv",
+                time: "6h sedan",
+                source: "X: @JohanPehrson",
+              },
+            ],
+          },
+        ];
+
+        // Räkna totala antalet inlägg (för översikten)
+        const totalPosts = partyData.reduce(
+          (sum, party) => sum + party.latestPosts.length,
+          0
+        );
+        document.getElementById("total-posts").textContent = totalPosts;
+
+        // Mappar sentiment till lämplig Tailwind-klass
+        const getSentimentClass = (sentiment) => {
+          if (sentiment.includes("Positiv"))
+            return "text-emerald-700 bg-emerald-100";
+          if (sentiment.includes("Negativ")) return "text-red-700 bg-red-100";
+          return "text-gray-700 bg-gray-200";
+        };
+
+        const gridContainer = document.getElementById("parties-grid");
+
+        // --- Funktion för att generera Partikort (med uppdaterad källvisning) ---
+        const generatePartyCards = () => {
+          partyData.forEach((party) => {
+            const partyCard = document.createElement("div");
+            partyCard.className = "card flex flex-col justify-between";
+            partyCard.style.borderTop = `6px solid ${party.color}`;
+
+            // Header
+            const header = document.createElement("div");
+            header.className =
+              "flex items-center mb-4 pb-2 border-b border-gray-100";
+            header.innerHTML = `
+                        <span class="text-3xl font-extrabold text-white px-3 py-1 rounded-lg mr-3" style="background-color: ${party.color};">${party.abbr}</span>
+                        <h3 class="text-xl font-bold text-gray-800">${party.name}</h3>
+                    `;
+            partyCard.appendChild(header);
+
+            // Inläggsflöde
+            const postsFeed = document.createElement("div");
+            postsFeed.className =
+              "flex-grow space-y-4 custom-scroll overflow-y-auto";
+
+            party.latestPosts.forEach((post) => {
+              const postElement = document.createElement("div");
+              const sentimentClass = getSentimentClass(post.sentiment);
+
+              postElement.innerHTML = `
+                            <div class="border border-gray-200 rounded-lg p-3 bg-gray-50">
+                                <div class="flex justify-between items-center mb-1">
+                                    <span class="text-xs font-semibold px-2 py-0.5 rounded-full ${sentimentClass}">
+                                        ${post.topic} (${post.sentiment})
+                                    </span>
+                                    <span class="text-xs text-gray-500">${post.time}</span>
+                                </div>
+                                <p class="text-sm text-gray-800 italic mb-2">${post.text}</p>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-xs text-gray-500 font-medium">${post.source}</span>
+                                    <a href="#" class="text-xs text-blue-600 hover:text-blue-800 font-medium">Källa &rarr;</a>
+                                </div>
+                            </div>
+                        `;
+              postsFeed.appendChild(postElement);
+            });
+
+            partyCard.appendChild(postsFeed);
+
+            // Footer
+            const footer = document.createElement("div");
+            footer.className = "mt-4 pt-4 border-t border-gray-100";
+            footer.innerHTML = `
+                        <button class="w-full bg-blue-500 text-white font-semibold py-2 rounded-lg hover:bg-blue-600 transition duration-150 text-sm shadow-md">
+                            Se mer (Alla inlägg)
+                        </button>
+                    `;
+            partyCard.appendChild(footer);
+
+            gridContainer.appendChild(partyCard);
+          });
+        };
+
+        // --- Funktion för att generera Ämnesjämförelse-sektionen ---
+        const renderTopicComparison = () => {
+          const comparisonContainer =
+            document.getElementById("comparison-content");
+          let allPosts = [];
+
+          // 1. Samla alla inlägg och koppla till parti
+          partyData.forEach((party) => {
+            party.latestPosts.forEach((post) => {
+              allPosts.push({
+                partyName: party.name,
+                partyAbbr: party.abbr,
+                partyColor: party.color,
+                ...post,
+              });
+            });
+          });
+
+          // 2. Gruppera inlägg efter ämne
+          const topicsMap = allPosts.reduce((acc, post) => {
+            if (!acc[post.topic]) {
+              acc[post.topic] = [];
+            }
+            acc[post.topic].push(post);
+            return acc;
+          }, {});
+
+          // 3. Filtrera bort ämnen med endast ett uttalande för att få jämförelse
+          const comparativeTopics = Object.keys(topicsMap).filter(
+            (topic) => topicsMap[topic].length > 1
+          );
+
+          // 4. Rendera jämförelsekorten
+          if (comparativeTopics.length === 0) {
+            comparisonContainer.innerHTML =
+              '<p class="text-gray-500">Inga ämnen med korsvisa jämförelser hittades baserat på nuvarande data.</p>';
+            return;
+          }
+
+          comparativeTopics.forEach((topic) => {
+            const topicCard = document.createElement("div");
+            topicCard.className = "card";
+
+            topicCard.innerHTML = `
+                        <h4 class="text-2xl font-semibold text-gray-700 mb-4 border-b pb-2">${topic}</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            ${topicsMap[topic]
+                              .map((post) => {
+                                const sentimentClass = getSentimentClass(
+                                  post.sentiment
+                                );
+                                return `
+                                    <div class="p-4 rounded-lg border border-gray-200 shadow-sm bg-white">
+                                        <div class="flex items-center mb-2">
+                                            <span class="text-sm font-bold text-white px-3 py-1 rounded-lg mr-3" style="background-color: ${post.partyColor};">${post.partyAbbr}</span>
+                                            <span class="text-sm font-medium ${sentimentClass}">${post.sentiment}</span>
+                                        </div>
+                                        <p class="text-gray-800 text-base">${post.text}</p>
+                                        <div class="text-xs text-gray-500 mt-2">
+                                            <a href="#" class="hover:underline">${post.source}</a> (${post.time})
+                                        </div>
+                                    </div>
+                                `;
+                              })
+                              .join("")}
+                        </div>
+                    `;
+            comparisonContainer.appendChild(topicCard);
+          });
+        };
+
+        generatePartyCards();
+        renderTopicComparison();
+      });
+    </script>
+  </body>
+</html>

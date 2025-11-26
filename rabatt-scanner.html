@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rabattscanner - Hitta erbjudanden nära dig</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .controls {
+            padding: 20px 30px;
+            background: #f8f9fa;
+            border-bottom: 2px solid #e9ecef;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .filter-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            padding: 8px 16px;
+            border: 2px solid #667eea;
+            background: white;
+            color: #667eea;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .filter-btn.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .filter-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0;
+            height: calc(100vh - 250px);
+            min-height: 600px;
+        }
+
+        #map {
+            height: 100%;
+            width: 100%;
+        }
+
+        .offers-panel {
+            overflow-y: auto;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+
+        .store-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .store-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+        }
+
+        .store-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .store-name {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .store-distance {
+            background: #667eea;
+            color: white;
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 0.9em;
+            font-weight: 600;
+        }
+
+        .store-address {
+            color: #666;
+            font-size: 0.9em;
+            margin-bottom: 15px;
+        }
+
+        .offers-list {
+            border-top: 2px solid #e9ecef;
+            padding-top: 15px;
+        }
+
+        .offer-item {
+            background: #f8f9fa;
+            padding: 12px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            border-left: 4px solid #28a745;
+        }
+
+        .offer-title {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .offer-price {
+            color: #28a745;
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+
+        .offer-original {
+            text-decoration: line-through;
+            color: #999;
+            font-size: 0.9em;
+            margin-left: 10px;
+        }
+
+        .no-location {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            font-size: 1.2em;
+            color: #667eea;
+        }
+
+        @media (max-width: 968px) {
+            .content {
+                grid-template-columns: 1fr;
+                height: auto;
+            }
+
+            #map {
+                height: 400px;
+            }
+
+            h1 {
+                font-size: 1.8em;
+            }
+
+            .controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .filter-group {
+                justify-content: center;
+            }
+        }
+
+        /* Store brand colors */
+        .ica { border-left-color: #E3000F; }
+        .willys { border-left-color: #D61E22; }
+        .lidl { border-left-color: #0050AA; }
+        .coop { border-left-color: #00844E; }
+        .hemkop { border-left-color: #FF6600; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🛒 Rabattscanner</h1>
+            <p class="subtitle">Hitta de bästa erbjudandena i livsmedelsbutiker nära dig</p>
+        </header>
+
+        <div class="controls">
+            <button class="btn btn-primary" id="findLocationBtn">
+                📍 Hitta min position
+            </button>
+            <div class="filter-group">
+                <button class="filter-btn active" data-store="all">Alla butiker</button>
+                <button class="filter-btn" data-store="ica">ICA</button>
+                <button class="filter-btn" data-store="willys">Willys</button>
+                <button class="filter-btn" data-store="lidl">Lidl</button>
+                <button class="filter-btn" data-store="coop">Coop</button>
+                <button class="filter-btn" data-store="hemkop">Hemköp</button>
+            </div>
+        </div>
+
+        <div class="content">
+            <div id="map"></div>
+            <div class="offers-panel">
+                <div class="no-location" id="initialMessage">
+                    <h3>👆 Klicka på "Hitta min position" för att börja</h3>
+                    <p>Vi visar erbjudanden från butiker nära dig</p>
+                </div>
+                <div id="offersList"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // Store data with locations and offers (mock data for Swedish cities)
+        const stores = [
+            {
+                id: 1,
+                name: 'ICA Maxi',
+                type: 'ica',
+                lat: 59.3293,
+                lon: 18.0686,
+                address: 'Drottninggatan 50, Stockholm',
+                offers: [
+                    { title: 'Kaffe Zoégas', price: '39:-', original: '59:-', discount: '34%' },
+                    { title: 'Mjölk Arla Ekologisk 1L', price: '12:-', original: '16:-', discount: '25%' },
+                    { title: 'Bröd Pågen Levain', price: '25:-', original: '32:-', discount: '22%' }
+                ]
+            },
+            {
+                id: 2,
+                name: 'Willys',
+                type: 'willys',
+                lat: 59.3345,
+                lon: 18.0632,
+                address: 'Sveavägen 75, Stockholm',
+                offers: [
+                    { title: 'Bananer 1kg', price: '15:-', original: '22:-', discount: '32%' },
+                    { title: 'Köttfärs 500g', price: '35:-', original: '49:-', discount: '29%' },
+                    { title: 'Pålägg Kalles Kaviar', price: '18:-', original: '25:-', discount: '28%' }
+                ]
+            },
+            {
+                id: 3,
+                name: 'Lidl',
+                type: 'lidl',
+                lat: 59.3250,
+                lon: 18.0710,
+                address: 'Götgatan 32, Stockholm',
+                offers: [
+                    { title: 'Pasta 500g', price: '8:-', original: '12:-', discount: '33%' },
+                    { title: 'Tomater 500g', price: '12:-', original: '18:-', discount: '33%' },
+                    { title: 'Olivolja 750ml', price: '45:-', original: '65:-', discount: '31%' }
+                ]
+            },
+            {
+                id: 4,
+                name: 'Coop Konsum',
+                type: 'coop',
+                lat: 59.3320,
+                lon: 18.0750,
+                address: 'Birger Jarlsgatan 25, Stockholm',
+                offers: [
+                    { title: 'Ägg 12-pack', price: '32:-', original: '42:-', discount: '24%' },
+                    { title: 'Yoghurt 1kg', price: '19:-', original: '25:-', discount: '24%' },
+                    { title: 'Juice 1L', price: '15:-', original: '22:-', discount: '32%' }
+                ]
+            },
+            {
+                id: 5,
+                name: 'Hemköp',
+                type: 'hemkop',
+                lat: 59.3310,
+                lon: 18.0580,
+                address: 'Hantverkargatan 12, Stockholm',
+                offers: [
+                    { title: 'Kyckling 800g', price: '59:-', original: '79:-', discount: '25%' },
+                    { title: 'Ost Herrgård 500g', price: '49:-', original: '69:-', discount: '29%' },
+                    { title: 'Smör Bregott 500g', price: '38:-', original: '48:-', discount: '21%' }
+                ]
+            },
+            // Göteborg
+            {
+                id: 6,
+                name: 'ICA Kvantum',
+                type: 'ica',
+                lat: 57.7089,
+                lon: 11.9746,
+                address: 'Avenyn 45, Göteborg',
+                offers: [
+                    { title: 'Lax 400g', price: '69:-', original: '89:-', discount: '22%' },
+                    { title: 'Potatis 2kg', price: '18:-', original: '25:-', discount: '28%' },
+                    { title: 'Apelsiner 1kg', price: '19:-', original: '28:-', discount: '32%' }
+                ]
+            },
+            {
+                id: 7,
+                name: 'Willys',
+                type: 'willys',
+                lat: 57.7023,
+                lon: 11.9676,
+                address: 'Kungsgatan 22, Göteborg',
+                offers: [
+                    { title: 'Flingor Kelloggs 500g', price: '25:-', original: '35:-', discount: '29%' },
+                    { title: 'Grädde 3dl', price: '11:-', original: '15:-', discount: '27%' },
+                    { title: 'Räkor 200g', price: '35:-', original: '48:-', discount: '27%' }
+                ]
+            },
+            // Malmö
+            {
+                id: 8,
+                name: 'Lidl',
+                type: 'lidl',
+                lat: 55.6050,
+                lon: 13.0038,
+                address: 'Södergatan 8, Malmö',
+                offers: [
+                    { title: 'Ris 1kg', price: '15:-', original: '22:-', discount: '32%' },
+                    { title: 'Äpplen 1kg', price: '16:-', original: '24:-', discount: '33%' },
+                    { title: 'Korv 400g', price: '28:-', original: '39:-', discount: '28%' }
+                ]
+            }
+        ];
+
+        let map;
+        let userMarker;
+        let storeMarkers = [];
+        let userLocation = null;
+        let activeFilter = 'all';
+
+        // Initialize map
+        function initMap() {
+            map = L.map('map').setView([59.3293, 18.0686], 13);
+            
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+        }
+
+        // Calculate distance between two coordinates
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371; // Earth's radius in km
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                      Math.sin(dLon/2) * Math.sin(dLon/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return R * c;
+        }
+
+        // Get user location
+        function getUserLocation() {
+            const offersList = document.getElementById('offersList');
+            const initialMessage = document.getElementById('initialMessage');
+            
+            initialMessage.style.display = 'none';
+            offersList.innerHTML = '<div class="loading">📡 Hittar din position...</div>';
+
+            if ('geolocation' in navigator) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        userLocation = {
+                            lat: position.coords.latitude,
+                            lon: position.coords.longitude
+                        };
+                        
+                        // Center map on user location
+                        map.setView([userLocation.lat, userLocation.lon], 13);
+                        
+                        // Add user marker
+                        if (userMarker) {
+                            map.removeLayer(userMarker);
+                        }
+                        
+                        userMarker = L.marker([userLocation.lat, userLocation.lon], {
+                            icon: L.divIcon({
+                                className: 'user-marker',
+                                html: '<div style="background: #667eea; width: 20px; height: 20px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3);"></div>',
+                                iconSize: [20, 20]
+                            })
+                        }).addTo(map);
+                        
+                        userMarker.bindPopup('📍 Du är här').openPopup();
+                        
+                        displayStores();
+                    },
+                    (error) => {
+                        offersList.innerHTML = '<div class="no-location"><h3>⚠️ Kunde inte hitta din position</h3><p>Kontrollera att du har aktiverat platsåtkomst</p></div>';
+                        console.error('Geolocation error:', error);
+                    }
+                );
+            } else {
+                offersList.innerHTML = '<div class="no-location"><h3>⚠️ Din webbläsare stöder inte geolokalisering</h3></div>';
+            }
+        }
+
+        // Display stores on map and in list
+        function displayStores() {
+            // Clear existing markers
+            storeMarkers.forEach(marker => map.removeLayer(marker));
+            storeMarkers = [];
+
+            const offersList = document.getElementById('offersList');
+            offersList.innerHTML = '';
+
+            // Filter stores
+            let filteredStores = stores;
+            if (activeFilter !== 'all') {
+                filteredStores = stores.filter(store => store.type === activeFilter);
+            }
+
+            // Calculate distances and sort
+            const storesWithDistance = filteredStores.map(store => ({
+                ...store,
+                distance: userLocation ? calculateDistance(
+                    userLocation.lat, userLocation.lon,
+                    store.lat, store.lon
+                ) : null
+            })).sort((a, b) => (a.distance || 0) - (b.distance || 0));
+
+            // Display stores
+            storesWithDistance.forEach(store => {
+                // Add marker to map
+                const storeIcon = L.divIcon({
+                    className: 'store-marker',
+                    html: `<div style="background: white; padding: 5px 10px; border-radius: 15px; border: 3px solid ${getStoreColor(store.type)}; font-weight: bold; font-size: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.3);">${store.name}</div>`,
+                    iconSize: [100, 30]
+                });
+
+                const marker = L.marker([store.lat, store.lon], { icon: storeIcon }).addTo(map);
+                
+                let popupContent = `<strong>${store.name}</strong><br>${store.address}<br><small>${store.offers.length} erbjudanden</small>`;
+                if (store.distance) {
+                    popupContent += `<br><small>${store.distance.toFixed(1)} km bort</small>`;
+                }
+                marker.bindPopup(popupContent);
+                
+                marker.on('click', () => {
+                    document.getElementById(`store-${store.id}`).scrollIntoView({ behavior: 'smooth' });
+                });
+                
+                storeMarkers.push(marker);
+
+                // Add to list
+                const storeCard = document.createElement('div');
+                storeCard.className = `store-card ${store.type}`;
+                storeCard.id = `store-${store.id}`;
+                
+                storeCard.innerHTML = `
+                    <div class="store-header">
+                        <div class="store-name">${store.name}</div>
+                        ${store.distance ? `<div class="store-distance">${store.distance.toFixed(1)} km</div>` : ''}
+                    </div>
+                    <div class="store-address">${store.address}</div>
+                    <div class="offers-list">
+                        ${store.offers.map(offer => `
+                            <div class="offer-item">
+                                <div class="offer-title">${offer.title}</div>
+                                <div>
+                                    <span class="offer-price">${offer.price}</span>
+                                    <span class="offer-original">${offer.original}</span>
+                                    <span style="color: #28a745; font-weight: 600; margin-left: 10px;">-${offer.discount}</span>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+                
+                storeCard.addEventListener('click', () => {
+                    map.setView([store.lat, store.lon], 15);
+                    marker.openPopup();
+                });
+                
+                offersList.appendChild(storeCard);
+            });
+
+            if (storesWithDistance.length === 0) {
+                offersList.innerHTML = '<div class="no-location"><h3>Inga butiker hittades</h3><p>Prova ett annat filter</p></div>';
+            }
+        }
+
+        // Get store brand color
+        function getStoreColor(type) {
+            const colors = {
+                ica: '#E3000F',
+                willys: '#D61E22',
+                lidl: '#0050AA',
+                coop: '#00844E',
+                hemkop: '#FF6600'
+            };
+            return colors[type] || '#667eea';
+        }
+
+        // Event listeners
+        document.getElementById('findLocationBtn').addEventListener('click', getUserLocation);
+
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                activeFilter = btn.dataset.store;
+                if (userLocation) {
+                    displayStores();
+                }
+            });
+        });
+
+        // Initialize
+        initMap();
+    </script>
+</body>
+</html>
